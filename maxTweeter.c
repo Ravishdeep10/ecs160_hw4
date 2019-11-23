@@ -56,43 +56,36 @@ int linked_list_insert(char* name, linked_list_t lizt)
     
 }
 
+char** split(char* str, char c, int *numSubstr) {
 
-const char* getfield(char* line, int num)
-{
-    const char* tok;
-    for (tok = strtok(line, ","); tok && *tok; tok = strtok(NULL, ",\n"))
-    {
-        if (!--num)
-            return tok;
-    }
-    return NULL;
-}
-
-char** split(char* str, char c) {
-
-    int numCommas = 0;
-    for (int i = 0; i < str[i] != '\0'; i++) {
-        if (str[i] == c) {
-            numCommas++;
-        }
+    int numOccurrences = 0;
+    for (int i = 0; str[i] != '\0'; i++) {  // Find all occurences of c
+        if (str[i] == c) 
+            numOccurrences++;
     }
 
-    char **substrs = (char **) malloc(sizeof(char *)*(numCommas + 1));
+    char **substrs = (char **) malloc(sizeof(char *)*(numOccurrences + 2));
+    int start = 0, end = 0;
+
     int i = 0;
-    while (str[i] != '\0') {
-        int start = i, end = 0, length = 0;
-        for (int j = i; str[j] != '\0'; j++) {
-            if (str[j] == c) {
-                end = j;
-                break;
-            }
-        }
-        length = end - start + 1;
-        substrs[i] = (char *) malloc(sizeof(char)*(length + 1));
-        strncpy(str + i, substrs[i], length);
+    while (start == 0 || str[start - 1] != '\0') {
+        int length = 0;
+
+        for (int j = start; str[j] != '\0' && str[j] != c; j++) 
+            length++;
+
+        substrs[i] = (char *) malloc(sizeof(char)*(length + 1));    // allocate additional char for the null character
+        strncpy(substrs[i], str + start, length);
         substrs[i][length] = '\0';
-        i = end + 1;
+
+        start += length + 1;
+        i++;
     }
+
+    substrs[numOccurrences + 1] = NULL;
+    
+    if (numSubstr)
+        *numSubstr = numOccurrences + 1;
 
     return substrs;
 }
