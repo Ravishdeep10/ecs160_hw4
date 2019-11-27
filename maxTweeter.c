@@ -1,18 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>
+#include <errno.h>
 
-struct Node{
+struct Node {
     char* name;
     int count;
     struct Node *next;
     struct Node *prev;
 };
 
+typedef struct Node* Node_t;
+
 struct linked_list {
     int size;
-    Node* head;
-}
+    Node_t head;
+};
 
 typedef struct linked_list* linked_list_t;
 
@@ -26,21 +30,22 @@ linked_list_t linked_list_create(void)
     l->size = 0;
     
     return l;
-    
 }
 
 int linked_list_insert(char* name, linked_list_t lizt)
 {
-    struct Node* current = lizt->head;
+    Node_t current = lizt->head;
     int found = 0;
-    while (current != NULL) {
+    while (current != NULL && !found) {
         if(!strcmp(current->name, name)) {
+            found = 1;
             current->count++;
         }
+        current = current->next;
     }
     
     if (!found) {
-        struct Node* new_node = (struct Node*) mallox(sizeof(struct Node));
+        Node_t new_node = (Node_t) malloc(sizeof(struct Node));
         new_node->next = lizt->head;
         if (lizt->head) {
             lizt->head->prev = new_node;
@@ -108,16 +113,19 @@ int main(int argc, char **argv )
     int name_index = -1;
     int tweet_index = -1;
     
-    char* name = NULL;
-    char* tweet = NULL;
-    
     int header_line = 0;
     int found_text = 0;
     int found_name = 0;
     
     char* line = NULL;
+    char *name = NULL;
+    char *tweet = NULL;
+
     // try size_t instead of int if doesnt work
-    int length = 0;
+    size_t length = 0;
+    int read = 0;
+    int numColumns = 0;
+    int numHeaderColumns = 0;
     while ((read = getline(&line, &length, stream)) != -1)
     {
         if (read > 1024) {
@@ -125,12 +133,20 @@ int main(int argc, char **argv )
             return 1;
         }
         
-        char** col_values = split(line, ',');
+        char** col_values = split(line, ',', &numColumns);
         int i = 0;
         
+        if (!header_line) {
+            numHeaderColumns = numColumns;
+        } else if (numColumns != numHeaderColumns) {
+            fprintf(stderr, "Error: Invalid Formatting\n");
+            exit(1);
+        }
+        
         while (col_values[i] != NULL) {
-            
+
             if (!header_line) {
+
                 if (!strcmp(col_values[i], "text")) {
                     tweet_index = i;
                     found_text = 1;
@@ -140,23 +156,23 @@ int main(int argc, char **argv )
                     name_index = i;
                     found_name = 1;
                 }
+
                 header_line = found_text & found_name;
             }
             else if (header_line){
                 if (i == name_index) {
                     name = col_values[name_index];
                 }
+
                 if (i == tweet_index) {
                     tweet = col_values[tweet_index];
                 }
-                
-                if (tweet != NULL && name != NULL && strlen(tweet) > 0) {
-                    linked_list_insert(name);
-                }
-                
-                
             }
-            
+
+            if (tweet != NULL && name != NULL && strlen(tweet) > 0) {
+                linked_list_insert(name, lizt);
+            }
+
             i++;
         }
         
@@ -164,18 +180,19 @@ int main(int argc, char **argv )
         name = NULL;
         tweet = NULL;
         
-        if (!header_line) {
+        if (!header_line || numHeaderColumns == 0) {
             fprintf(stderr, "Error: Invalid Formatting\n");
             return 1;
         }
-        
-        
-        
     }
+
+    // TODO
+    // Enable parsing for quoted header values
+    // Safely free malloc'd strings from split()
+    // Sort linked list (quicksort?)
+    // Grab and print top 3 results
+        
     fclose(stream);
-    if (line){
-        free(line);
-    }
     
     return 0;
 }
