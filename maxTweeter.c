@@ -62,7 +62,7 @@ int linked_list_insert(char* name, linked_list_t lizt)
 }
 
 
-void split(Node_t old, Node_t* left, Node_t* right) {
+void node_split(Node_t old, Node_t* left, Node_t* right) {
     Node_t fast;
     Node_t slow;
     slow = old;
@@ -100,25 +100,25 @@ Node_t merge(Node_t left, Node_t right) {
     return ret;
 }
 
-Node_t mergesort(Node_t* head) {
+Node_t linked_list_mergesort(Node_t* head) {
     if (((*head) == NULL) || ((*head)->next == NULL)) {
-        return head;
+        return *head;
     }
     
     Node_t left;
     Node_t right;
     
-    split(*head, &left, &right);
+    node_split(*head, &left, &right);
     
-    left = mergesort(&left);
-    right = mergesort(&right);
+    left = linked_list_mergesort(&left);
+    right = linked_list_mergesort(&right);
     
     return merge(left, right);
 }
 
 
 void linked_list_sort(linked_list_t lizt) {
-    lizt->head = mergesort(&(lizt->head));
+    lizt->head = linked_list_mergesort(&(lizt->head));
 }
 
 char** split(char* str, char c, int *numSubstr) {
