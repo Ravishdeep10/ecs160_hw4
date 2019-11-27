@@ -17,8 +17,6 @@ struct linked_list {
     Node_t head;
 };
 
-
-
 typedef struct linked_list* linked_list_t;
 
 linked_list_t linked_list_create(void)
@@ -32,8 +30,6 @@ linked_list_t linked_list_create(void)
     
     return l;
 }
-
-
 
 int linked_list_insert(char* name, linked_list_t lizt)
 {
@@ -71,7 +67,6 @@ void linked_list_free(linked_list_t l) {
 
     free(l);
 }
-
 
 void split(Node_t old, Node_t* left, Node_t* right) {
     Node_t fast;
@@ -132,6 +127,62 @@ void linked_list_sort(linked_list_t lizt) {
     lizt->head = mergesort(&(lizt->head));
 }
 
+int checkTokenQuotes(char *t) {
+    int length = strlen(t);
+    
+    if (length == 0)
+        return 0;
+        
+    if (length == 1 && t[0] == '\"') {
+        return -1;
+    }
+
+    if ((t[0] == '\"' && t[length - 1] != '\"') ||  // Check for mismatching quotes
+        ((t[0] != '\"' && t[length - 1] == '\"'))) {
+        return -1;
+    }
+
+    if (t[0] == '\"')
+        return 1;
+    else
+        return 0;
+}
+
+int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
+    int *isQuoted = (int *) malloc(sizeof(int)*numColumns);
+    int isNameFound = 0;
+
+    if (numColumns == 0) {  // Check if header column is empty
+        printError();
+        exit(1);
+    }
+
+    for (int i = 0; header[i]; i++) {
+        if (!strcmp(header[i], "name") || !strcmp(header[i], "\"name\"")) {
+            if (isNameFound) {  // Check if there is a duplicate name column
+                printError();
+                exit(1);
+            }
+            isNameFound = 1;
+            if (nameIndex)
+                *nameIndex = i;
+        }
+
+        isQuoted[i] = checkTokenQuotes(header[i]);
+        if (isQuoted[i] == -1) {
+            printError();
+            exit(1);
+        }
+    }
+
+    if (!isNameFound) { // Check if header is missing name column
+        printError();
+        exit(1);
+    }
+
+    return isQuoted;
+}
+
 char** split(char* str, char c, int *numSubstr) {
 
     int numOccurrences = 0;
@@ -185,82 +236,75 @@ int main(int argc, char **argv )
     
     linked_list_t lizt = linked_list_create();
     
+    int lineNumber = 1;
     int name_index = -1;
-    int tweet_index = -1;
     
-    int header_line = 0;
-    int found_text = 0;
-    int found_name = 0;
-    
-    char* line = NULL;
+    char *line = NULL;
     char *name = NULL;
-    char *tweet = NULL;
+    int *isHeaderQuoted = NULL;
 
     // try size_t instead of int if doesnt work
     size_t length = 0;
     int read = 0;
     int numColumns = 0;
     int numHeaderColumns = 0;
+
+    // Process Header first
+    read = getline(&line, &length, stream);
+
+    if (read > 1024) {
+        printError();
+        exit(1);
+    }
+
+    line[read - 1] = '\0'; // get rid of newline
+
+    char **col_values = split(line, ',', &numHeaderColumns);
+
+    isHeaderQuoted = processCSVHeader(line, numHeaderColumns, &name_index);
+
     while ((read = getline(&line, &length, stream)) != -1)
     {
         if (read > 1024) {
             printError();
             return 1;
         }
+
+        line[read - 1] = '\0'; // get rid of newline
         
-        char** col_values = split(line, ',', &numColumns);
-        int i = 0;
-        
-        if (!header_line) {
-            numHeaderColumns = numColumns;
-        } else if (numColumns != numHeaderColumns) {
+        col_values = split(line, ',', &numColumns);
+
+        if (numColumns != numHeaderColumns) {
             printError();
             exit(1);
         }
-        
-        while (col_values[i] != NULL) {
 
-            if (!header_line) {
+        for (int i = 0; col_values[i] != NULL; i++) {
 
-                if (!strcmp(col_values[i], "text")) {
-                    tweet_index = i;
-                    found_text = 1;
-                } else if (!strcmp(col_values[i], "name")) {
-                    name_index = i;
-                    found_name = 1;
+                int isQuoted = 0;
+
+                isQuoted = checkTokenQuotes(col_values[i]);
+                if (isQuoted != isHeaderQuoted[i]) {
+                    printError();
+                    exit(1);
                 }
 
-                header_line = found_text & found_name;
-                
-                free(col_values[i]);
-            }
-            else if (header_line){
                 if (i == name_index) {
                     name = col_values[name_index];
-                } else if (i == tweet_index) {
-                    tweet = col_values[tweet_index];
-                } else {
+                } 
+                else {
                     free(col_values[i]);
                 }
 
-                if (tweet != NULL && name != NULL && strlen(tweet) > 0) {
+                if (name != NULL) {
                     linked_list_insert(name, lizt);
                 }
-            }
-
-            i++;
         }
         
         free(col_values);
 
         // Clean up time
         name = NULL;
-        tweet = NULL;
-        
-        if (!header_line || numHeaderColumns == 0) {
-            printError();
-            return 1;
-        }
     }
     
     
