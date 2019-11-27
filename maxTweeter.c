@@ -57,8 +57,19 @@ int linked_list_insert(char* name, linked_list_t lizt)
     }
     
     return 0;
-    
-    
+}
+
+void linked_list_free(linked_list_t l) {
+    Node_t curr = l->head;
+    Node_t next = NULL;
+    while (curr) {
+        next = curr->next;
+        free(curr->name);
+        free(curr);
+        curr = next;
+    }
+
+    free(l);
 }
 
 
@@ -155,16 +166,20 @@ char** split(char* str, char c, int *numSubstr) {
     return substrs;
 }
 
+void printError() {
+    printf("Invalid Input Format\n");
+}
+
 int main(int argc, char **argv )
 {
     if (argc != 2) {
-        printf("Usage: %s csvfilepath\n", basename(argv[0]));
+        printError();
         return 1;
     }
     
     FILE* stream = fopen(argv[1], "r");
     if (stream == NULL) {
-        fprintf(stderr, "Error opening file: %d\n", errno);
+        printError();
         return 1;
     }
     
@@ -189,7 +204,7 @@ int main(int argc, char **argv )
     while ((read = getline(&line, &length, stream)) != -1)
     {
         if (read > 1024) {
-            fprintf(stderr, "Error csv contains lines of length 1024+: %d\n", errno);
+            printError();
             return 1;
         }
         
@@ -199,7 +214,7 @@ int main(int argc, char **argv )
         if (!header_line) {
             numHeaderColumns = numColumns;
         } else if (numColumns != numHeaderColumns) {
-            fprintf(stderr, "Error: Invalid Formatting\n");
+            printError();
             exit(1);
         }
         
@@ -210,38 +225,40 @@ int main(int argc, char **argv )
                 if (!strcmp(col_values[i], "text")) {
                     tweet_index = i;
                     found_text = 1;
-                }
-                
-                if (!strcmp(col_values[i], "name")) {
+                } else if (!strcmp(col_values[i], "name")) {
                     name_index = i;
                     found_name = 1;
                 }
 
                 header_line = found_text & found_name;
+                
+                free(col_values[i]);
             }
             else if (header_line){
                 if (i == name_index) {
                     name = col_values[name_index];
-                }
-
-                if (i == tweet_index) {
+                } else if (i == tweet_index) {
                     tweet = col_values[tweet_index];
+                } else {
+                    free(col_values[i]);
                 }
-            }
 
-            if (tweet != NULL && name != NULL && strlen(tweet) > 0) {
-                linked_list_insert(name, lizt);
+                if (tweet != NULL && name != NULL && strlen(tweet) > 0) {
+                    linked_list_insert(name, lizt);
+                }
             }
 
             i++;
         }
         
+        free(col_values);
+
         // Clean up time
         name = NULL;
         tweet = NULL;
         
         if (!header_line || numHeaderColumns == 0) {
-            fprintf(stderr, "Error: Invalid Formatting\n");
+            printError();
             return 1;
         }
     }
@@ -251,11 +268,12 @@ int main(int argc, char **argv )
 
     // TODO
     // Enable parsing for quoted header values
-    // Safely free malloc'd strings from split()
     // Sort linked list (quicksort?)
     // Grab and print top 3 results
         
     fclose(stream);
+
+    linked_list_free(lizt);
     
     return 0;
 }
