@@ -68,7 +68,8 @@ void linked_list_free(linked_list_t l) {
     free(l);
 }
 
-void split(Node_t old, Node_t* left, Node_t* right) {
+
+void node_split(Node_t old, Node_t* left, Node_t* right) {
     Node_t fast;
     Node_t slow;
     slow = old;
@@ -106,25 +107,29 @@ Node_t merge(Node_t left, Node_t right) {
     return ret;
 }
 
-Node_t mergesort(Node_t* head) {
+Node_t linked_list_mergesort(Node_t* head) {
     if (((*head) == NULL) || ((*head)->next == NULL)) {
-        return head;
+        return *head;
     }
     
     Node_t left;
     Node_t right;
     
-    split(*head, &left, &right);
+    node_split(*head, &left, &right);
     
-    left = mergesort(&left);
-    right = mergesort(&right);
+    left = linked_list_mergesort(&left);
+    right = linked_list_mergesort(&right);
     
     return merge(left, right);
 }
 
 
 void linked_list_sort(linked_list_t lizt) {
-    lizt->head = mergesort(&(lizt->head));
+    lizt->head = linked_list_mergesort(&(lizt->head));
+}
+
+void printError() {
+    printf("Invalid Input Format\n");
 }
 
 int checkTokenQuotes(char *t) {
@@ -217,10 +222,6 @@ char** split(char* str, char c, int *numSubstr) {
     return substrs;
 }
 
-void printError() {
-    printf("Invalid Input Format\n");
-}
-
 int main(int argc, char **argv )
 {
     if (argc != 2) {
@@ -261,7 +262,7 @@ int main(int argc, char **argv )
 
     char **col_values = split(line, ',', &numHeaderColumns);
 
-    isHeaderQuoted = processCSVHeader(line, numHeaderColumns, &name_index);
+    isHeaderQuoted = processCSVHeader(col_values, numHeaderColumns, &name_index);
 
     while ((read = getline(&line, &length, stream)) != -1)
     {
