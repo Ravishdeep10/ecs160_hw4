@@ -8,7 +8,6 @@ struct Node {
     char* name;
     int count;
     struct Node *next;
-    struct Node *prev;
 };
 
 typedef struct Node* Node_t;
@@ -17,6 +16,8 @@ struct linked_list {
     int size;
     Node_t head;
 };
+
+
 
 typedef struct linked_list* linked_list_t;
 
@@ -31,6 +32,8 @@ linked_list_t linked_list_create(void)
     
     return l;
 }
+
+
 
 int linked_list_insert(char* name, linked_list_t lizt)
 {
@@ -47,9 +50,6 @@ int linked_list_insert(char* name, linked_list_t lizt)
     if (!found) {
         Node_t new_node = (Node_t) malloc(sizeof(struct Node));
         new_node->next = lizt->head;
-        if (lizt->head) {
-            lizt->head->prev = new_node;
-        }
         new_node->name = name;
         new_node->count = 1;
         lizt->head = new_node;
@@ -59,6 +59,66 @@ int linked_list_insert(char* name, linked_list_t lizt)
     return 0;
     
     
+}
+
+
+void split(Node_t old, Node_t* left, Node_t* right) {
+    Node_t fast;
+    Node_t slow;
+    slow = old;
+    fast = old->next;
+    
+    while (fast != NULL) {
+        fast = fast->next;
+        if (fast != NULL) {
+            slow = slow->next;
+            fast = fast->next;
+        }
+    }
+
+    *left = old;
+    *right = slow->next;
+    slow->next = NULL;
+}
+
+Node_t merge(Node_t left, Node_t right) {
+    Node_t ret = NULL;
+    
+    if (left == NULL)
+        return right;
+    else if (right == NULL)
+        return left;
+    
+    if (left->count <= right->count) {
+        ret = left;
+        ret->next = merge(left->next, right);
+    }
+    else {
+        ret = right;
+        ret->next = merge(left, right->next);
+    }
+    return ret;
+}
+
+Node_t mergesort(Node_t* head) {
+    if (((*head) == NULL) || ((*head)->next == NULL)) {
+        return head;
+    }
+    
+    Node_t left;
+    Node_t right;
+    
+    split(*head, &left, &right);
+    
+    left = mergesort(&left);
+    right = mergesort(&right);
+    
+    return merge(left, right);
+}
+
+
+void linked_list_sort(linked_list_t lizt) {
+    lizt->head = mergesort(&(lizt->head));
 }
 
 char** split(char* str, char c, int *numSubstr) {
@@ -185,6 +245,9 @@ int main(int argc, char **argv )
             return 1;
         }
     }
+    
+    
+    linked_list_sort(lizt);
 
     // TODO
     // Enable parsing for quoted header values
