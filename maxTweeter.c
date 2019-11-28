@@ -4,6 +4,8 @@
 #include <libgen.h>
 #include <errno.h>
 
+char INVALID_ERR[] = "Invalid Input Format\n";
+
 struct Node {
     char* name;
     int count;
@@ -128,8 +130,9 @@ void linked_list_sort(linked_list_t lizt) {
     lizt->head = linked_list_mergesort(&(lizt->head));
 }
 
-void printError() {
-    printf("Invalid Input Format\n");
+void printError(char *err) {
+    printf("%s", err);
+    exit(1);
 }
 
 int checkTokenQuotes(char *t) {
@@ -158,15 +161,13 @@ int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
     int isNameFound = 0;
 
     if (numColumns == 0) {  // Check if header column is empty
-        printError();
-        exit(1);
+        printError(INVALID_ERR);
     }
 
     for (int i = 0; header[i]; i++) {
         if (!strcmp(header[i], "name") || !strcmp(header[i], "\"name\"")) {
             if (isNameFound) {  // Check if there is a duplicate name column
-                printError();
-                exit(1);
+                printError(INVALID_ERR);
             }
             isNameFound = 1;
             if (nameIndex)
@@ -175,13 +176,13 @@ int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
 
         isQuoted[i] = checkTokenQuotes(header[i]);
         if (isQuoted[i] == -1) {
-            printError();
+            printError(INVALID_ERR);
             exit(1);
         }
     }
 
     if (!isNameFound) { // Check if header is missing name column
-        printError();
+        printError(INVALID_ERR);
         exit(1);
     }
 
@@ -225,14 +226,15 @@ char** split(char* str, char c, int *numSubstr) {
 int main(int argc, char **argv )
 {
     if (argc != 2) {
-        printError();
-        return 1;
+        int n = strlen(basename(argv[0]));
+        char s[n + 21];
+        sprintf(s, "Usage: %s path/to/csv\n", basename(argv[0]));
+        printError(s);
     }
     
     FILE* stream = fopen(argv[1], "r");
     if (stream == NULL) {
-        printError();
-        return 1;
+        printError("Failed to open input file\n");
     }
     
     linked_list_t lizt = linked_list_create();
@@ -254,8 +256,7 @@ int main(int argc, char **argv )
     read = getline(&line, &length, stream);
 
     if (read > 1024) {
-        printError();
-        exit(1);
+        printError(INVALID_ERR);
     }
 
     line[read - 1] = '\0'; // get rid of newline
@@ -267,8 +268,7 @@ int main(int argc, char **argv )
     while ((read = getline(&line, &length, stream)) != -1)
     {
         if (read > 1024) {
-            printError();
-            return 1;
+            printError(INVALID_ERR);
         }
 
         line[read - 1] = '\0'; // get rid of newline
@@ -276,8 +276,7 @@ int main(int argc, char **argv )
         col_values = split(line, ',', &numColumns);
 
         if (numColumns != numHeaderColumns) {
-            printError();
-            exit(1);
+            printError(INVALID_ERR);
         }
 
         for (int i = 0; col_values[i] != NULL; i++) {
@@ -286,8 +285,7 @@ int main(int argc, char **argv )
 
                 isQuoted = checkTokenQuotes(col_values[i]);
                 if (isQuoted != isHeaderQuoted[i]) {
-                    printError();
-                    exit(1);
+                    printError(INVALID_ERR);
                 }
 
                 if (i == name_index) {
