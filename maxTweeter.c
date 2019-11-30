@@ -89,6 +89,8 @@ void linked_list_print(linked_list_t l) {
         curr = curr->next;
     }
 
+    printf("The size of the list is %d\n", l->size);
+
     return;
 }
 
@@ -306,7 +308,7 @@ int main(int argc, char **argv )
                 int isQuoted = 0;
 
                 isQuoted = checkTokenQuotes(col_values[i]);
-                if (isQuoted != isHeaderQuoted[i]) {
+                if (isHeaderQuoted[i] && !isQuoted) {
                     printError(NOT_QUOTED);
                 }
 
