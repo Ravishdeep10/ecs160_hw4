@@ -6,6 +6,17 @@
 
 char INVALID_ERR[] = "Invalid Input Format\n";
 
+// Debug error messages
+char EMPTY_HEAD[] = "Header row is empty\n";
+char DUP_NAME[] = "Duplicate Name column\n";
+char MISSIN_NAME[] = "Header row has no name column\n";
+char ROW_SIZE[] = "The row has more than 1024 characters\n";
+char COL_NUM_MIS[] = "Number of columns in row doesnt match num header cols\n";
+char NOT_QUOTED[] = "The column value is not quoted but the header col is\n";
+
+
+
+
 struct Node {
     char* name;
     int count;
@@ -29,7 +40,7 @@ linked_list_t linked_list_create(void)
     }
     l->head = NULL;
     l->size = 0;
-    
+
     return l;
 }
 
@@ -44,7 +55,7 @@ int linked_list_insert(char* name, linked_list_t lizt)
         }
         current = current->next;
     }
-    
+
     if (!found) {
         Node_t new_node = (Node_t) malloc(sizeof(struct Node));
         new_node->next = lizt->head;
@@ -53,7 +64,7 @@ int linked_list_insert(char* name, linked_list_t lizt)
         lizt->head = new_node;
         lizt->size++;
     }
-    
+
     return 0;
 }
 
@@ -70,13 +81,24 @@ void linked_list_free(linked_list_t l) {
     free(l);
 }
 
+void linked_list_print(linked_list_t l) {
+    Node_t curr = l->head;
+    Node_t next = NULL;
+    while (curr != NULL) {
+        printf("Name %s appears %d times\n", curr->name, curr->count);
+        curr = curr->next;
+    }
+
+    return;
+}
+
 
 void node_split(Node_t old, Node_t* left, Node_t* right) {
     Node_t fast;
     Node_t slow;
     slow = old;
     fast = old->next;
-    
+
     while (fast != NULL) {
         fast = fast->next;
         if (fast != NULL) {
@@ -92,13 +114,13 @@ void node_split(Node_t old, Node_t* left, Node_t* right) {
 
 Node_t merge(Node_t left, Node_t right) {
     Node_t ret = NULL;
-    
+
     if (left == NULL)
         return right;
     else if (right == NULL)
         return left;
-    
-    if (left->count <= right->count) {
+
+    if (left->count > right->count) {
         ret = left;
         ret->next = merge(left->next, right);
     }
@@ -113,15 +135,15 @@ Node_t linked_list_mergesort(Node_t* head) {
     if (((*head) == NULL) || ((*head)->next == NULL)) {
         return *head;
     }
-    
+
     Node_t left;
     Node_t right;
-    
+
     node_split(*head, &left, &right);
-    
+
     left = linked_list_mergesort(&left);
     right = linked_list_mergesort(&right);
-    
+
     return merge(left, right);
 }
 
@@ -137,10 +159,10 @@ void printError(char *err) {
 
 int checkTokenQuotes(char *t) {
     int length = strlen(t);
-    
+
     if (length == 0)
         return 0;
-        
+
     if (length == 1 && t[0] == '\"') {
         return -1;
     }
@@ -161,13 +183,13 @@ int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
     int isNameFound = 0;
 
     if (numColumns == 0) {  // Check if header column is empty
-        printError(INVALID_ERR);
+        printError(EMPTY_HEAD);
     }
 
     for (int i = 0; header[i]; i++) {
         if (!strcmp(header[i], "name") || !strcmp(header[i], "\"name\"")) {
             if (isNameFound) {  // Check if there is a duplicate name column
-                printError(INVALID_ERR);
+                printError(DUP_NAME);
             }
             isNameFound = 1;
             if (nameIndex)
@@ -182,7 +204,7 @@ int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
     }
 
     if (!isNameFound) { // Check if header is missing name column
-        printError(INVALID_ERR);
+        printError(MISSIN_NAME);
         exit(1);
     }
 
@@ -193,7 +215,7 @@ char** split(char* str, char c, int *numSubstr) {
 
     int numOccurrences = 0;
     for (int i = 0; str[i] != '\0'; i++) {  // Find all occurences of c
-        if (str[i] == c) 
+        if (str[i] == c)
             numOccurrences++;
     }
 
@@ -204,7 +226,7 @@ char** split(char* str, char c, int *numSubstr) {
     while (start == 0 || str[start - 1] != '\0') {
         int length = 0;
 
-        for (int j = start; str[j] != '\0' && str[j] != c; j++) 
+        for (int j = start; str[j] != '\0' && str[j] != c; j++)
             length++;
 
         substrs[i] = (char *) malloc(sizeof(char)*(length + 1));    // allocate additional char for the null character
@@ -216,7 +238,7 @@ char** split(char* str, char c, int *numSubstr) {
     }
 
     substrs[numOccurrences + 1] = NULL;
-    
+
     if (numSubstr)
         *numSubstr = numOccurrences + 1;
 
@@ -231,17 +253,17 @@ int main(int argc, char **argv )
         sprintf(s, "Usage: %s path/to/csv\n", basename(argv[0]));
         printError(s);
     }
-    
+
     FILE* stream = fopen(argv[1], "r");
     if (stream == NULL) {
         printError("Failed to open input file\n");
     }
-    
+
     linked_list_t lizt = linked_list_create();
-    
+
     int lineNumber = 1;
     int name_index = -1;
-    
+
     char *line = NULL;
     char *name = NULL;
     int *isHeaderQuoted = NULL;
@@ -256,7 +278,7 @@ int main(int argc, char **argv )
     read = getline(&line, &length, stream);
 
     if (read > 1024) {
-        printError(INVALID_ERR);
+        printError(ROW_SIZE);
     }
 
     line[read - 1] = '\0'; // get rid of newline
@@ -268,15 +290,15 @@ int main(int argc, char **argv )
     while ((read = getline(&line, &length, stream)) != -1)
     {
         if (read > 1024) {
-            printError(INVALID_ERR);
+            printError(ROW_SIZE);
         }
 
         line[read - 1] = '\0'; // get rid of newline
-        
+
         col_values = split(line, ',', &numColumns);
 
         if (numColumns != numHeaderColumns) {
-            printError(INVALID_ERR);
+            printError(COL_NUM_MIS);
         }
 
         for (int i = 0; col_values[i] != NULL; i++) {
@@ -290,24 +312,28 @@ int main(int argc, char **argv )
 
                 if (i == name_index) {
                     name = col_values[name_index];
-                } 
+                }
                 else {
                     free(col_values[i]);
                 }
 
                 if (name != NULL) {
+                    //if (isHeaderQuoted[i]) {
+                    //    name[strlen(name) - 1] = '\0';
+                    //    name++;
+                    //}
+                    printf("%s\n", name);
                     linked_list_insert(name, lizt);
                 }
-
-                // Clean up time
                 name = NULL;
         }
-        
+
         free(col_values);
     }
-    
-    
+
+
     linked_list_sort(lizt);
+    linked_list_print(lizt);
 
     for (Node_t n = lizt->head; n != NULL; n = n->next) {
         printf("%s: %d\n", n->name, n->count);
@@ -317,12 +343,10 @@ int main(int argc, char **argv )
     // Enable parsing for quoted header values
     // Sort linked list (quicksort?)
     // Grab and print top 3 results
-        
+
     fclose(stream);
 
     linked_list_free(lizt);
-    
+
     return 0;
 }
-
-
