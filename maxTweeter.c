@@ -15,7 +15,26 @@ char COL_NUM_MIS[] = "Number of columns in row doesnt match num header cols\n";
 char NOT_QUOTED[] = "The column value is not quoted but the header col is\n";
 
 
+int checkTokenQuotes(char *t) {
+    int length = strlen(t);
 
+    if (length == 0)
+        return 0;
+
+    if (length == 1 && t[0] == '\"') {
+        return -1;
+    }
+
+    if ((t[0] == '\"' && t[length - 1] != '\"') ||  // Check for mismatching quotes
+        ((t[0] != '\"' && t[length - 1] == '\"'))) {
+        return -1;
+    }
+
+    if (t[0] == '\"')
+        return 1;
+    else
+        return 0;
+}
 
 struct Node {
     char* name;
@@ -81,12 +100,24 @@ void linked_list_free(linked_list_t l) {
     free(l);
 }
 
-void linked_list_print(linked_list_t l) {
+void linked_list_print(linked_list_t l, int numToPrint) {
     Node_t curr = l->head;
     Node_t next = NULL;
-    while (curr != NULL) {
-        printf("Name %s appears %d times\n", curr->name, curr->count);
+    char *name = NULL;
+    int length = 0;
+    int count = 0;
+    while (curr != NULL && count < numToPrint) {
+        name = curr->name;
+        if (checkTokenQuotes(name) > 0) {
+            name++;
+            length = strlen(name);
+            if (length > 1)
+                name[length - 1] = '\0';
+        }
+
+        printf("%s: %d\n", name, curr->count);
         curr = curr->next;
+        count++;
     }
 
     printf("The size of the list is %d\n", l->size);
@@ -157,27 +188,6 @@ void linked_list_sort(linked_list_t lizt) {
 void printError(char *err) {
     printf("%s", err);
     exit(1);
-}
-
-int checkTokenQuotes(char *t) {
-    int length = strlen(t);
-
-    if (length == 0)
-        return 0;
-
-    if (length == 1 && t[0] == '\"') {
-        return -1;
-    }
-
-    if ((t[0] == '\"' && t[length - 1] != '\"') ||  // Check for mismatching quotes
-        ((t[0] != '\"' && t[length - 1] == '\"'))) {
-        return -1;
-    }
-
-    if (t[0] == '\"')
-        return 1;
-    else
-        return 0;
 }
 
 int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
@@ -308,8 +318,8 @@ int main(int argc, char **argv )
                 int isQuoted = 0;
 
                 isQuoted = checkTokenQuotes(col_values[i]);
-                if (isHeaderQuoted[i] && !isQuoted) {
-                    printError(NOT_QUOTED);
+                if (isHeaderQuoted[i] && isHeaderQuoted[i] != isQuoted) {
+                    printError(INVALID_ERR);
                 }
 
                 if (i == name_index) {
@@ -320,25 +330,16 @@ int main(int argc, char **argv )
                 }
 
                 if (name != NULL) {
-                    //if (isHeaderQuoted[i]) {
-                    //    name[strlen(name) - 1] = '\0';
-                    //    name++;
-                    //}
-                    printf("%s\n", name);
                     linked_list_insert(name, lizt);
                 }
                 name = NULL;
         }
 
         free(col_values);
-
-        // Clean up time
-        name = NULL;
     }
 
-
     linked_list_sort(lizt);
-    linked_list_print(lizt);
+    linked_list_print(lizt, 10);
 
     // TODO
     // Enable parsing for quoted header values
