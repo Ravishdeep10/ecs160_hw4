@@ -284,7 +284,7 @@ int main(int argc, char **argv )
                 int isQuoted = 0;
 
                 isQuoted = checkTokenQuotes(col_values[i]);
-                if (isQuoted != isHeaderQuoted[i]) {
+                if (isHeaderQuoted[i] && isHeaderQuoted[i] != isQuoted) {
                     printError(INVALID_ERR);
                 }
 
@@ -298,16 +298,20 @@ int main(int argc, char **argv )
                 if (name != NULL) {
                     linked_list_insert(name, lizt);
                 }
+
+                // Clean up time
+                name = NULL;
         }
         
         free(col_values);
-
-        // Clean up time
-        name = NULL;
     }
     
     
     linked_list_sort(lizt);
+
+    for (Node_t n = lizt->head; n != NULL; n = n->next) {
+        printf("%s: %d\n", n->name, n->count);
+    }
 
     // TODO
     // Enable parsing for quoted header values
