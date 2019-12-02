@@ -36,6 +36,11 @@ int checkTokenQuotes(char *t) {
         return 0;
 }
 
+/* To store the counts of each tweeter, we used a linked list
+    where each node contains the name of the tweeter and the number
+    of tweets they made so far in the file. Allocating nodes in a linked_list
+    is easier than reallocating space in an array. */
+
 struct Node {
     char* name;
     int count;
@@ -51,6 +56,7 @@ struct linked_list {
 
 typedef struct linked_list* linked_list_t;
 
+/* Creates an empty linked list and returns its pointers */
 linked_list_t linked_list_create(void)
 {
     linked_list_t l = (linked_list_t) malloc(sizeof(struct linked_list));
@@ -63,10 +69,15 @@ linked_list_t linked_list_create(void)
     return l;
 }
 
+/* Searches the linked list for a node with the same name as the input
+    and if found increments that node's count, else creates a new node in
+    the list */
 int linked_list_insert(char* name, linked_list_t lizt)
 {
     Node_t current = lizt->head;
     int found = 0;
+
+    // Go through the list to find the node with the exacy na,e
     while (current != NULL && !found) {
         if(!strcmp(current->name, name)) {
             found = 1;
@@ -75,6 +86,7 @@ int linked_list_insert(char* name, linked_list_t lizt)
         current = current->next;
     }
 
+    // If a node wasnt found, append a new node to the list with that na,e
     if (!found) {
         Node_t new_node = (Node_t) malloc(sizeof(struct Node));
         new_node->next = lizt->head;
@@ -87,6 +99,7 @@ int linked_list_insert(char* name, linked_list_t lizt)
     return 0;
 }
 
+/* Free up the nodes in the list */
 void linked_list_free(linked_list_t l) {
     Node_t curr = l->head;
     Node_t next = NULL;
@@ -100,14 +113,18 @@ void linked_list_free(linked_list_t l) {
     free(l);
 }
 
+/* Prints the info of the first numToPrint nodes in the linked list */
 void linked_list_print(linked_list_t l, int numToPrint) {
     Node_t curr = l->head;
     Node_t next = NULL;
     char *name = NULL;
     int length = 0;
     int count = 0;
+
     while (curr != NULL && count < numToPrint) {
         name = curr->name;
+
+        // If the name is quoted, print the unquoted version
         if (checkTokenQuotes(name) > 0) {
             name++;
             length = strlen(name);
@@ -125,13 +142,14 @@ void linked_list_print(linked_list_t l, int numToPrint) {
     return;
 }
 
-
+/* Helper fn of mergesort which splits two linked lists in half */
 void node_split(Node_t old, Node_t* left, Node_t* right) {
     Node_t fast;
     Node_t slow;
     slow = old;
     fast = old->next;
 
+    // Slow pointer will reach the middle when fast reaches the end
     while (fast != NULL) {
         fast = fast->next;
         if (fast != NULL) {
@@ -140,19 +158,24 @@ void node_split(Node_t old, Node_t* left, Node_t* right) {
         }
     }
 
+    // Set left list to the original head and set the right list to
+    //  the middle+1 node and sever the link between the lists
     *left = old;
     *right = slow->next;
     slow->next = NULL;
 }
 
+/* Helper fn of mergesort which merges two linked lists in sorted order */
 Node_t merge(Node_t left, Node_t right) {
     Node_t ret = NULL;
 
+    // Base case if one of the lists is NULL
     if (left == NULL)
         return right;
     else if (right == NULL)
         return left;
 
+    // Check each first node of the list and then recursively call merge
     if (left->count > right->count) {
         ret = left;
         ret->next = merge(left->next, right);
@@ -161,10 +184,15 @@ Node_t merge(Node_t left, Node_t right) {
         ret = right;
         ret->next = merge(left, right->next);
     }
+
+    // Return the merged list
     return ret;
 }
 
+/* Implementation of mergesort on the linked list whose head is passed in */
 Node_t linked_list_mergesort(Node_t* head) {
+
+    // Base case
     if (((*head) == NULL) || ((*head)->next == NULL)) {
         return *head;
     }
@@ -172,19 +200,21 @@ Node_t linked_list_mergesort(Node_t* head) {
     Node_t left;
     Node_t right;
 
+    // Split the list in half and recursively call mergesort on both halves
     node_split(*head, &left, &right);
-
     left = linked_list_mergesort(&left);
     right = linked_list_mergesort(&right);
 
+    // return the linked list after merging bboth sorted halves
     return merge(left, right);
 }
 
-
+/* Returns the sorted version of the linked list */
 void linked_list_sort(linked_list_t lizt) {
     lizt->head = linked_list_mergesort(&(lizt->head));
 }
 
+/* Prints the error message passed in and exits */
 void printError(char *err) {
     printf("%s", err);
     exit(1);
@@ -280,7 +310,6 @@ int main(int argc, char **argv )
     char *name = NULL;
     int *isHeaderQuoted = NULL;
 
-    // try size_t instead of int if doesnt work
     size_t length = 0;
     int read = 0;
     int numColumns = 0;
@@ -289,6 +318,7 @@ int main(int argc, char **argv )
     // Process Header first
     read = getline(&line, &length, stream);
 
+    // Check if each row is less than 1024 characters
     if (read > 1024) {
         printError(ROW_SIZE);
     }
@@ -340,11 +370,6 @@ int main(int argc, char **argv )
 
     linked_list_sort(lizt);
     linked_list_print(lizt, 10);
-
-    // TODO
-    // Enable parsing for quoted header values
-    // Sort linked list (quicksort?)
-    // Grab and print top 3 results
 
     fclose(stream);
 
