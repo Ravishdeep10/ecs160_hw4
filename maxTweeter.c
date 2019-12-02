@@ -111,7 +111,7 @@ void linked_list_print(linked_list_t l, int numToPrint) {
         if (checkTokenQuotes(name) > 0) {
             name++;
             length = strlen(name);
-            if (length > 1)
+            if (length >= 1)
                 name[length - 1] = '\0';
         }
 
@@ -318,7 +318,7 @@ int main(int argc, char **argv )
                 int isQuoted = 0;
 
                 isQuoted = checkTokenQuotes(col_values[i]);
-                if (isHeaderQuoted[i] && isHeaderQuoted[i] != isQuoted) {
+                if (isHeaderQuoted[i] != isQuoted) {
                     printError(INVALID_ERR);
                 }
 
