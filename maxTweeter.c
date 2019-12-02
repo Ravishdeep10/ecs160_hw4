@@ -13,9 +13,18 @@ char MISSIN_NAME[] = "Header row has no name column\n";
 char ROW_SIZE[] = "The row has more than 1024 characters\n";
 char COL_NUM_MIS[] = "Number of columns in row doesnt match num header cols\n";
 char NOT_QUOTED[] = "The column value is not quoted but the header col is\n";
+char FILE_LENGTH[] = "The file has more than 20000 lines\n";
 
 
 int checkTokenQuotes(char *t) {
+    /*
+     * Checks for double quotes around a given string t.
+     * Returns:
+     * 0 if the token is not quoted
+     * 1 if the token is quoted
+     * -1 if the token contains invalid quotes (e.g. only on one end of the token)
+     */
+
     int length = strlen(t);
 
     if (length == 0)
@@ -116,7 +125,6 @@ void linked_list_free(linked_list_t l) {
 /* Prints the info of the first numToPrint nodes in the linked list */
 void linked_list_print(linked_list_t l, int numToPrint) {
     Node_t curr = l->head;
-    Node_t next = NULL;
     char *name = NULL;
     int length = 0;
     int count = 0;
@@ -136,8 +144,6 @@ void linked_list_print(linked_list_t l, int numToPrint) {
         curr = curr->next;
         count++;
     }
-
-    printf("The size of the list is %d\n", l->size);
 
     return;
 }
@@ -221,6 +227,18 @@ void printError(char *err) {
 }
 
 int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
+    /*
+     * Processes an array of strings as the headers of a csv
+     * 
+     * Arguments:
+     * header: array of strings representing header names
+     * numColumns: number of columns in the header
+     * nameIndex: pointer used to store the index of the "name" header. If NULL, no value is stored.
+     * 
+     * Returns:
+     * Array of boolean values representing whether the column at each index is quoted or not
+     */
+
     int *isQuoted = (int *) malloc(sizeof(int)*numColumns);
     int isNameFound = 0;
 
@@ -254,6 +272,17 @@ int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
 }
 
 char** split(char* str, char c, int *numSubstr) {
+    /*
+     * Split str based by char c.
+     * 
+     * Arguments:
+     * str: the string to split
+     * c: the char to split the string by
+     * numSubstr: pointer used to store the number of substrings found. If NULL, no value is stored.
+     * 
+     * Returns:
+     * Array of malloc'd substrings, terminated by a NULL pointer.
+     */
 
     int numOccurrences = 0;
     for (int i = 0; str[i] != '\0'; i++) {  // Find all occurences of c
@@ -262,7 +291,7 @@ char** split(char* str, char c, int *numSubstr) {
     }
 
     char **substrs = (char **) malloc(sizeof(char *)*(numOccurrences + 2));
-    int start = 0, end = 0;
+    int start = 0;
 
     int i = 0;
     while (start == 0 || str[start - 1] != '\0') {
@@ -289,7 +318,7 @@ char** split(char* str, char c, int *numSubstr) {
 
 int main(int argc, char **argv )
 {
-    if (argc != 2) {
+    if (argc != 2) {    // Check command line inputs
         int n = strlen(basename(argv[0]));
         char s[n + 21];
         sprintf(s, "Usage: %s path/to/csv\n", basename(argv[0]));
@@ -318,12 +347,12 @@ int main(int argc, char **argv )
     // Process Header first
     read = getline(&line, &length, stream);
 
-    // Check if each row is less than 1024 characters
-    if (read > 1024) {
+    if (read > 1024) {  // Check if header is less than 1024 characters
         printError(ROW_SIZE);
     }
 
-    line[read - 1] = '\0'; // get rid of newline
+    if (line[read - 1] == '\n')
+        line[read - 1] = '\0'; // get rid of newline
 
     char **col_values = split(line, ',', &numHeaderColumns);
 
@@ -331,15 +360,21 @@ int main(int argc, char **argv )
 
     while ((read = getline(&line, &length, stream)) != -1)
     {
-        if (read > 1024) {
+        if (read > 1024) {  // Check if header is less than 1024 characters
             printError(ROW_SIZE);
         }
 
-        line[read - 1] = '\0'; // get rid of newline
+        lineNumber++;
+        if (lineNumber > 20000) {
+            printError(FILE_LENGTH);
+        }
+
+        if (line[read - 1] == '\n')
+            line[read - 1] = '\0'; // get rid of newline
 
         col_values = split(line, ',', &numColumns);
 
-        if (numColumns != numHeaderColumns) {
+        if (numColumns != numHeaderColumns) {   // Check that each row has same number of columns as header
             printError(COL_NUM_MIS);
         }
 
@@ -348,14 +383,14 @@ int main(int argc, char **argv )
                 int isQuoted = 0;
 
                 isQuoted = checkTokenQuotes(col_values[i]);
-                if (isHeaderQuoted[i] != isQuoted) {
+                if (isHeaderQuoted[i] != isQuoted) {    // Check that value is quoted if and only if header is quoted
                     printError(INVALID_ERR);
                 }
 
                 if (i == name_index) {
                     name = col_values[name_index];
                 }
-                else {
+                else {  // free unneeded column values
                     free(col_values[i]);
                 }
 
@@ -369,7 +404,7 @@ int main(int argc, char **argv )
     }
 
     linked_list_sort(lizt);
-    linked_list_print(lizt, 10);
+    linked_list_print(lizt, 10);    // Print first 10 items in the list
 
     fclose(stream);
 
