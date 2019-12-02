@@ -6,14 +6,6 @@
 
 char INVALID_ERR[] = "Invalid Input Format\n";
 
-// Debug error messages
-char EMPTY_HEAD[] = "Header row is empty\n";
-char DUP_NAME[] = "Duplicate Name column\n";
-char MISSIN_NAME[] = "Header row has no name column\n";
-char ROW_SIZE[] = "The row has more than 1024 characters\n";
-char COL_NUM_MIS[] = "Number of columns in row doesnt match num header cols\n";
-char NOT_QUOTED[] = "The column value is not quoted but the header col is\n";
-char FILE_LENGTH[] = "The file has more than 20000 lines\n";
 
 
 int checkTokenQuotes(char *t) {
@@ -65,9 +57,13 @@ struct linked_list {
 
 typedef struct linked_list* linked_list_t;
 
-/* Creates an empty linked list and returns its pointers */
-linked_list_t linked_list_create(void)
-{
+linked_list_t linked_list_create(void) {
+    /*
+     * Creates an empty linked list
+     *
+     * Returns:
+     * A pointer to the new linked list
+     */
     linked_list_t l = (linked_list_t) malloc(sizeof(struct linked_list));
     if (l == NULL) {
         return NULL;
@@ -78,11 +74,19 @@ linked_list_t linked_list_create(void)
     return l;
 }
 
-/* Searches the linked list for a node with the same name as the input
-    and if found increments that node's count, else creates a new node in
-    the list */
-int linked_list_insert(char* name, linked_list_t lizt)
-{
+int linked_list_insert(char* name, linked_list_t lizt) {
+    /*
+     * Searches the linked list for a node with the same name as the input
+     * and if found increments that node's count, else creates a new node in
+     * the list
+     *
+     * Arguments:
+     * name: string of name we are searching for
+     * lizt: the linked list
+     * Returns:
+     * 0 if the name is in the list
+     *
+     */
     Node_t current = lizt->head;
     int found = 0;
 
@@ -108,8 +112,13 @@ int linked_list_insert(char* name, linked_list_t lizt)
     return 0;
 }
 
-/* Free up the nodes in the list */
 void linked_list_free(linked_list_t l) {
+    /*
+     * Free up the nodes in the list
+     *
+     * Arguments:
+     * l: the linked list
+     */
     Node_t curr = l->head;
     Node_t next = NULL;
     while (curr) {
@@ -122,8 +131,14 @@ void linked_list_free(linked_list_t l) {
     free(l);
 }
 
-/* Prints the info of the first numToPrint nodes in the linked list */
 void linked_list_print(linked_list_t l, int numToPrint) {
+    /*
+     * Prints the info of the first numToPrint nodes in the linked list
+     *
+     * Arguments:
+     * l: the linked list
+     * numToPrint: integer for how many nodes to print
+     */
     Node_t curr = l->head;
     char *name = NULL;
     int length = 0;
@@ -148,8 +163,15 @@ void linked_list_print(linked_list_t l, int numToPrint) {
     return;
 }
 
-/* Helper fn of mergesort which splits two linked lists in half */
 void node_split(Node_t old, Node_t* left, Node_t* right) {
+    /*
+     * Helper fn of mergesort which splits two linked lists in half
+     *
+     * Arguments:
+     * old: node pointer of the head node of the list to be split
+     * left: node pointer which will store the head pointer for the left half
+     * right: node pointer which will store the head pointer for the right half
+     */
     Node_t fast;
     Node_t slow;
     slow = old;
@@ -171,8 +193,17 @@ void node_split(Node_t old, Node_t* left, Node_t* right) {
     slow->next = NULL;
 }
 
-/* Helper fn of mergesort which merges two linked lists in sorted order */
 Node_t merge(Node_t left, Node_t right) {
+    /*
+     * Helper fn of mergesort which merges two linked lists in sorted order
+     *
+     * Arguments:
+     * left: node pointer for the left sublist
+     * right: node pointer for the right sublist
+     *
+     * Returns:
+     * A node pointer to the merged sorted list of left and right
+     */
     Node_t ret = NULL;
 
     // Base case if one of the lists is NULL
@@ -195,8 +226,16 @@ Node_t merge(Node_t left, Node_t right) {
     return ret;
 }
 
-/* Implementation of mergesort on the linked list whose head is passed in */
 Node_t linked_list_mergesort(Node_t* head) {
+    /*
+     *  Implementation of mergesort on the linked list whose head is passed in
+     *
+     * Arguments:
+     * head: node pointer to the head of the linked list
+     *
+     * Returns:
+     * A node pointer to the sorted list
+     */
 
     // Base case
     if (((*head) == NULL) || ((*head)->next == NULL)) {
@@ -215,13 +254,23 @@ Node_t linked_list_mergesort(Node_t* head) {
     return merge(left, right);
 }
 
-/* Returns the sorted version of the linked list */
 void linked_list_sort(linked_list_t lizt) {
+    /*
+     * Sorts the linked list passed in
+     *
+     * Arguments:
+     * lizt: pointer to the linked list
+     */
     lizt->head = linked_list_mergesort(&(lizt->head));
 }
 
-/* Prints the error message passed in and exits */
 void printError(char *err) {
+    /*
+     * Prints the error message passed in and exits the program
+     *
+     * Arguments:
+     * err: string of the error message
+     */
     printf("%s", err);
     exit(1);
 }
@@ -229,27 +278,29 @@ void printError(char *err) {
 int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
     /*
      * Processes an array of strings as the headers of a csv
-     * 
+     *
      * Arguments:
      * header: array of strings representing header names
      * numColumns: number of columns in the header
-     * nameIndex: pointer used to store the index of the "name" header. If NULL, no value is stored.
-     * 
+     * nameIndex: pointer used to store the index of the "name" header.
+     *              If NULL, no value is stored.
+     *
      * Returns:
-     * Array of boolean values representing whether the column at each index is quoted or not
+     * Array of boolean values representing whether the column at each index
+     *  is quoted or not
      */
 
     int *isQuoted = (int *) malloc(sizeof(int)*numColumns);
     int isNameFound = 0;
 
     if (numColumns == 0) {  // Check if header column is empty
-        printError(EMPTY_HEAD);
+        printError(INVALID_ERR);
     }
 
     for (int i = 0; header[i]; i++) {
         if (!strcmp(header[i], "name") || !strcmp(header[i], "\"name\"")) {
             if (isNameFound) {  // Check if there is a duplicate name column
-                printError(DUP_NAME);
+                printError(INVALID_ERR);
             }
             isNameFound = 1;
             if (nameIndex)
@@ -264,7 +315,7 @@ int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
     }
 
     if (!isNameFound) { // Check if header is missing name column
-        printError(MISSIN_NAME);
+        printError(INVALID_ERR);
         exit(1);
     }
 
@@ -274,12 +325,13 @@ int *processCSVHeader(char **header, int numColumns, int *nameIndex) {
 char** split(char* str, char c, int *numSubstr) {
     /*
      * Split str based by char c.
-     * 
+     *
      * Arguments:
      * str: the string to split
      * c: the char to split the string by
-     * numSubstr: pointer used to store the number of substrings found. If NULL, no value is stored.
-     * 
+     * numSubstr: pointer used to store the number of substrings found.
+     *             If NULL, no value is stored.
+     *
      * Returns:
      * Array of malloc'd substrings, terminated by a NULL pointer.
      */
@@ -300,7 +352,8 @@ char** split(char* str, char c, int *numSubstr) {
         for (int j = start; str[j] != '\0' && str[j] != c; j++)
             length++;
 
-        substrs[i] = (char *) malloc(sizeof(char)*(length + 1));    // allocate additional char for the null character
+        // allocate additional char for the null character
+        substrs[i] = (char *) malloc(sizeof(char)*(length + 1));
         strncpy(substrs[i], str + start, length);
         substrs[i][length] = '\0';
 
@@ -348,7 +401,7 @@ int main(int argc, char **argv )
     read = getline(&line, &length, stream);
 
     if (read > 1024) {  // Check if header is less than 1024 characters
-        printError(ROW_SIZE);
+        printError(INVALID_ERR);
     }
 
     if (line[read - 1] == '\n')
@@ -361,12 +414,12 @@ int main(int argc, char **argv )
     while ((read = getline(&line, &length, stream)) != -1)
     {
         if (read > 1024) {  // Check if header is less than 1024 characters
-            printError(ROW_SIZE);
+            printError(INVALID_ERR);
         }
 
         lineNumber++;
         if (lineNumber > 20000) {
-            printError(FILE_LENGTH);
+            printError(INVALID_ERR);
         }
 
         if (line[read - 1] == '\n')
@@ -374,8 +427,9 @@ int main(int argc, char **argv )
 
         col_values = split(line, ',', &numColumns);
 
-        if (numColumns != numHeaderColumns) {   // Check that each row has same number of columns as header
-            printError(COL_NUM_MIS);
+        if (numColumns != numHeaderColumns) {
+             // Check that each row has same number of columns as header
+            printError(INVALID_ERR);
         }
 
         for (int i = 0; col_values[i] != NULL; i++) {
@@ -383,7 +437,8 @@ int main(int argc, char **argv )
                 int isQuoted = 0;
 
                 isQuoted = checkTokenQuotes(col_values[i]);
-                if (isHeaderQuoted[i] != isQuoted) {    // Check that value is quoted if and only if header is quoted
+                if (isHeaderQuoted[i] != isQuoted) {
+                    // Check that value is quoted if and only if header is quoted
                     printError(INVALID_ERR);
                 }
 
